@@ -36,8 +36,11 @@
 
             <div id="duz-rota-bolumu">
                 <div class="mb-4">
-                    <button type="button" onclick="haritayiAc('duz')" class="btn btn-warning btn-lg w-100 py-3 mb-3 fw-bold text-dark shadow" style="font-size: 18px; border-radius: 12px;">
+                    <button type="button" onclick="haritayiAc('duz', 'yandex')" class="btn btn-warning btn-lg w-100 py-3 mb-2 fw-bold text-dark shadow" style="font-size: 17px; border-radius: 12px;">
                         🗺️ Yandex Harita Başlat (A -> Z)
+                    </button>
+                    <button type="button" onclick="haritayiAc('duz', 'google')" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow" style="font-size: 17px; border-radius: 12px; background-color: #4285F4;">
+                        📍 Google Haritalar Başlat (A -> Z)
                     </button>
                 </div>
                 <div class="card shadow-sm border-0 mb-4">
@@ -60,15 +63,18 @@
 
             <div id="ters-rota-bolumu" style="display: none;">
                 <div class="mb-4">
-                    <button type="button" onclick="haritayiAc('ters')" class="btn btn-warning btn-lg w-100 py-3 mb-3 fw-bold text-dark shadow" style="font-size: 18px; border-radius: 12px;">
+                    <button type="button" onclick="haritayiAc('ters', 'yandex')" class="btn btn-warning btn-lg w-100 py-3 mb-2 fw-bold text-dark shadow" style="font-size: 17px; border-radius: 12px;">
                         🗺️ Yandex Harita Başlat (Z -> A)
+                    </button>
+                    <button type="button" onclick="haritayiAc('ters', 'google')" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow" style="font-size: 17px; border-radius: 12px; background-color: #4285F4;">
+                        📍 Google Haritalar Başlat (Z -> A)
                     </button>
                 </div>
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-body">
                         <h5 class="card-title fw-bold text-danger mb-3">🏁 Gidiş Sıralaması (Z -> A):</h5>
                         <div id="ters-liste" class="list-group list-group-numbered">
-                            {% for nokta in rota_ters %}
+                            {% for nokta in rota_terse_mi_cevrildi_hafiz | default(rota_ters) %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3" data-lat="{{ nokta.lat }}" data-lon="{{ nokta.lon }}" data-adres="{{ nokta.adres }}">
                                     <span class="me-2 adres-metni">{{ nokta.adres }}</span>
                                     <div class="btn-group">
@@ -101,7 +107,7 @@
                     <div class="list-group list-group-flush">
                         {% for adres in bulunamayanlar %}
                             <div class="list-group-item d-flex justify-content-between align-items-center text-danger small border-0 py-2 px-0 fw-bold">
-                                <span>❌ {{ adres }}</span>
+                                <span class="hatali-adres-metni">❌ {{ adres }}</span>
                                 <button type="button" class="btn btn-danger btn-sm py-1" onclick="adresiDuzeltmeyeGonder('{{ adres }}')">✍️ Düzelterek Yeniden Ara</button>
                             </div>
                         {% endfor %}
@@ -132,19 +138,13 @@
     function adresiSil(buton) {
         var satir = buton.closest('.list-group-item');
         var adresMetni = satir.querySelector('.adres-metni').innerText;
-        
         var tumSatirlar = document.querySelectorAll('.list-group-item');
         tumSatirlar.forEach(function(item) {
             var span = item.querySelector('.adres-metni');
-            if(span && span.innerText === adresMetni) {
-                item.remove();
-            }
+            if(span && span.innerText === adresMetni) item.remove();
         });
-        
         var mevcutBulunan = parseInt(document.getElementById('ozet-bulunan').innerText);
-        if(mevcutBulunan > 0) {
-            document.getElementById('ozet-bulunan').innerText = mevcutBulunan - 1;
-        }
+        if(mevcutBulunan > 0) document.getElementById('ozet-bulunan').innerText = mevcutBulunan - 1;
     }
 
     function sonDakikaAdresEkle() {
@@ -164,13 +164,13 @@
             
         document.getElementById('duz-liste').insertAdjacentHTML('beforeend', yeniEleman);
         document.getElementById('ters-liste').insertAdjacentHTML('afterbegin', yeniEleman);
-        
         document.getElementById('ozet-bulunan').innerText = parseInt(document.getElementById('ozet-bulunan').innerText) + 1;
         document.getElementById('ozet-girilen').innerText = parseInt(document.getElementById('ozet-girilen').innerText) + 1;
         input.value = '';
     }
 
-    function haritayiAc(mod) {
+    // YANDEX VE GOOGLE DİNAMİK ROTA AÇICI (GÜNCELLENDİ)
+    function haritayiAc(mod, haritaTuru) {
         var listeId = mod === 'duz' ? 'duz-liste' : 'ters-liste';
         var satirlar = document.getElementById(listeId).querySelectorAll('.list-group-item');
         
@@ -179,31 +179,50 @@
             return;
         }
 
-        var rtextParcalari = [];
+        var noktalar = [];
         satirlar.forEach(function(satir) {
             var lat = satir.getAttribute('data-lat');
             var lon = satir.getAttribute('data-lon');
             var adres = satir.getAttribute('data-adres');
-            
-            if(lat && lon && lat !== "" && lon !== "") {
-                rtextParcalari.push(lat + "," + lon);
-            } else if(adres) {
-                rtextParcalari.push("Eskişehir " + adres);
-            }
+            noktalar.push({lat: lat, lon: lon, adres: adres});
         });
 
-        var yandexUrl = "https://yandex.com/maps/?rtext=" + rtextParcalari.join("~") + "&rtt=auto";
-        window.open(yandexUrl, '_blank');
+        if (haritaTuru === 'yandex') {
+            var rtextParcalari = [];
+            noktalar.forEach(function(n) {
+                if(n.lat && n.lon && n.lat !== "" && n.lon !== "") {
+                    rtextParcalari.push(n.lat + "," + n.lon);
+                } else {
+                    rtextParcalari.push("Eskişehir " + n.adres);
+                }
+            });
+            window.open("https://yandex.com/maps/?rtext=" + rtextParcalari.join("~") + "&rtt=auto", '_blank');
+        } else if (haritaTuru === 'google') {
+            var googleParcalari = [];
+            noktalar.forEach(function(n) {
+                if(n.lat && n.lon && n.lat !== "" && n.lon !== "") {
+                    googleParcalari.push(n.lat + "," + n.lon);
+                } else {
+                    googleParcalari.push(encodeURIComponent("Eskişehir " + n.adres));
+                }
+            });
+            window.open("https://www.google.com/maps/dir/" + googleParcalari.join("/"), '_blank');
+        }
     }
 
+    // DÜZELTME YAPARKEN MEVCUT TÜM ADRESLERİ HAFIZAYA ALAN SİHİRLİ FONKSİYON
     function adresiDuzeltmeyeGonder(hataliAdres) {
-        sessionStorage.setItem('duzeltilecek_adres', hataliAdres);
-        var link = document.getElementById('yeni-giris-linki');
-        if(link) {
-            link.click();
-        } else {
-            window.location.href = "/";
-        }
+        var basariliAdresler = [];
+        // Şu an ekranda duran başarılı adreslerin hepsini metin olarak topluyoruz
+        document.querySelectorAll('#duz-liste .adres-metni').forEach(function(span) {
+            basariliAdresler.push(span.innerText);
+        });
+
+        // Paketi hazırlayıp tarayıcı hafızasına (localStorage) kilitliyoruz
+        localStorage.setItem('eski_basarili_adresler', JSON.stringify(basariliAdresler));
+        localStorage.setItem('duzeltilecek_hatali_adres', hataliAdres);
+
+        window.location.href = "/";
     }
 
     function garantiKopyala(metin, element) {
@@ -215,7 +234,6 @@
         geciciKutu.setSelectionRange(0, 99999);
         document.execCommand("copy");
         document.body.removeChild(geciciKutu);
-
         var eskiYazi = element.innerText;
         element.innerText = "✅";
         setTimeout(function() { element.innerText = eskiYazi; }, 1500);
