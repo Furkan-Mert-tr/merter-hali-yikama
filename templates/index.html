@@ -33,6 +33,19 @@
             </div>
         </div>
     </div>
-
+<script>
+        // Sayfa açıldığında düzeltilecek bir sakat adres var mı diye bakıyoruz
+        window.onload = function() {
+            var hataliAdres = sessionStorage.getItem('duzeltilecek_adres');
+            if (hataliAdres) {
+                var textarea = document.querySelector('textarea[name="adresler"]');
+                if (textarea) {
+                    textarea.value = hataliAdres;
+                    // Hafızayı temizle ki her sayfa yenilendiğinde gelmesin
+                    sessionStorage.removeItem('duzeltilecek_adres');
+                }
+            }
+        }
+    </script>
 </body>
 </html>
