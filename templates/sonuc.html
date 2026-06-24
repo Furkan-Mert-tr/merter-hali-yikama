@@ -139,7 +139,7 @@
         var satir = buton.closest('.list-group-item');
         var adresMetni = satir.querySelector('.adres-metni').innerText;
         
-        // Hem düz hem ters listeden bu adresi bulup uçuruyoruz
+        
         var tumSatirlar = document.querySelectorAll('.list-group-item');
         tumSatirlar.forEach(function(item) {
             if(item.querySelector('.adres-metni').innerText === adresMetni) {
@@ -160,7 +160,7 @@
         var adres = input.value.strip ? input.value.strip() : input.value.trim();
         if(!adres) return;
 
-        // Adresin koordinatını tarayıcıda bilmediğimiz için Yandex linkinde isim olarak kullanacağız
+        
         var yeniElemanDuz = `
             <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3" data-lat="" data-lon="" data-adres="${adres}">
                 <span class="me-2 adres-metni">${adres}</span>
@@ -171,10 +171,10 @@
             </div>`;
             
         document.getElementById('duz-liste').insertAdjacentHTML('beforeend', yeniElemanDuz);
-        // Ters listenin en başına ekle (Çünkü düz listenin sonu, ters listenin başıdır)
+        
         document.getElementById('ters-liste').insertAdjacentHTML('afterbegin', yeniElemanDuz);
         
-        // Özet sayılarını arttır
+        
         document.getElementById('ozet-bulunan').innerText = parseInt(document.getElementById('ozet-bulunan').innerText) + 1;
         document.getElementById('ozet-girilen').innerText = parseInt(document.getElementById('ozet-girilen').innerText) + 1;
         
@@ -200,7 +200,7 @@
             if(lat && lon) {
                 rtextParcalari.push(lat + "," + lon);
             } else {
-                // Sonradan eklenen adreste koordinat yoksa ismen ekliyoruz Yandex çözüyor
+                
                 rtextParcalari.push("Eskişehir " + adres);
             }
         });
@@ -209,9 +209,9 @@
         window.open(yandexUrl, '_blank');
     }
 
-    // BULUNAMAYAN ADRESİ ANA SAYFAYA DÜZELTMEYE GÖNDERME SİHRİ
+    // BULUNAMAYAN ADRESİ ANA SAYFAYA DÜZELTMEYE GÖNDERME 
     function adresiDuzeltmeyeGonder(hataliAdres) {
-        // Tarayıcı hafızasını (SessionStorage) kullanarak hatayı ana sayfaya paslıyoruz
+        
         sessionStorage.setItem('duzeltilecek_adres', hataliAdres);
         document.getElementById('yeni-grid-linki')?.click();
         window.location.href = "/";
