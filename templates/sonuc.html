@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rota Sonuç Raporu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light" style="max-width: 500px; margin: 0 auto;">
+
+    <div class="container my-4">
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <h4 class="fw-bold text-center mb-3 text-dark">📊 Rota Özet Raporu</h4>
+                <div class="row text-center g-2">
+                    <div class="col-4"><div class="p-2 bg-secondary text-white rounded"><small class="d-block" style="font-size: 10px;">GİRİLEN</small><span class="fs-4 fw-bold">{{ toplam_girilen }}</span></div></div>
+                    <div class="col-4"><div class="p-2 bg-success text-white rounded"><small class="d-block" style="font-size: 10px;">BULUNAN</small><span class="fs-4 fw-bold">{{ toplam_bulunan }}</span></div></div>
+                    <div class="col-4"><div class="p-2 bg-danger text-white rounded"><small class="d-block" style="font-size: 10px;">OLMAYAN</small><span class="fs-4 fw-bold">{{ toplam_bulunamayan }}</span></div></div>
+                </div>
+            </div>
+        </div>
+
+        {% if hata_var %}
+            <div class="alert alert-danger shadow-sm" role="alert">
+                <h4 class="alert-heading fw-bold">⚠️ Rota Çizilemedi!</h4>
+                <p class="m-0">Baba, adreslerin çoğunu harita bulamadı. Lütfen kontrol edip tekrar dene.</p>
+            </div>
+        {% else %}
+
+            <div class="mb-3">
+                <button type="button" class="btn btn-info btn-lg w-100 py-3 fw-bold text-white shadow" onclick="rotayiTersCevir()" style="border-radius: 12px; background-color: #0dcaf0;">
+                    🔄 Rotayı Tersine Çevir (Z'den A'ya)
+                </button>
+            </div>
+
+            <div id="duz-rota-bolumu">
+                <div class="mb-4">
+                    <a href="{{ yandex_link_duz }}" target="_blank" class="btn btn-warning btn-lg w-100 py-3 mb-3 fw-bold text-dark shadow" style="font-size: 18px; border-radius: 12px;">
+                        🗺️ Yandex Harita Başlat (A -> Z)
+                    </a>
+                    <a href="{{ google_link_duz }}" target="_blank" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow" style="font-size: 18px; border-radius: 12px; background-color: #4285F4;">
+                        📍 Google Rota Başlat (A -> Z)
+                    </a>
+                </div>
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold text-success mb-3">🏁 Gidiş Sıralaması (A -> Z):</h5>
+                        <div class="list-group list-group-numbered">
+                            {% for nokta in rota %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3">
+                                    <span class="me-2">{{ nokta.adres }}</span>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="garantiKopyala('Eskişehir, {{ nokta.adres }}', this)">📋 Kopyala</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ters-rota-bolumu" style="display: none;">
+                <div class="mb-4">
+                    <a href="{{ yandex_link_ters }}" target="_blank" class="btn btn-warning btn-lg w-100 py-3 mb-3 fw-bold text-dark shadow" style="font-size: 18px; border-radius: 12px;">
+                        🗺️ Yandex Harita Başlat (Z -> A)
+                    </a>
+                    <a href="{{ google_link_ters }}" target="_blank" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow" style="font-size: 18px; border-radius: 12px; background-color: #4285F4;">
+                        📍 Google Rota Başlat (Z -> A)
+                    </a>
+                </div>
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold text-danger mb-3">🏁 Gidiş Sıralaması (Z -> A):</h5>
+                        <div class="list-group list-group-numbered">
+                            {% for nokta in rota_ters %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3">
+                                    <span class="me-2">{{ nokta.adres }}</span>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="garantiKopyala('Eskişehir, {{ nokta.adres }}', this)">📋 Kopyala</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        {% endif %}
+
+        {% if toplam_bulunamayan > 0 %}
+            <div class="card shadow-sm border-0 border-start border-danger border-4 mb-4 bg-white mt-3">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-danger">⚠️ Haritada Bulunamayanlar (İlçe Dışı/Hatalı):</h5>
+                    <p class="text-muted small m-0 mb-2">Baba, bu adresler Odunpazarı veya Tepebaşı merkez sınırlarında çözülemedi:</p>
+                    <ul class="list-group list-group-flush">
+                        {% for adres in bulunamayanlar %}
+                            <li class="list-group-item text-danger small border-0 py-1 px-0 fw-bold">❌ {{ adres }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="text-center my-3">
+            <a href="/" class="btn btn-link text-decoration-none fw-bold">⬅️ Yeni Adres Girişi Yap</a>
+        </div>
+
+    </div>
+
+    <script>
+    function rotayiTersCevir() {
+        var duzBolum = document.getElementById("duz-rota-bolumu");
+        var tersBolum = document.getElementById("ters-rota-bolumu");
+        if (duzBolum.style.display === "none") {
+            duzBolum.style.display = "block";
+            tersBolum.style.display = "none";
+        } else {
+            duzBolum.style.display = "none";
+            tersBolum.style.display = "block";
+        }
+    }
+
+    // HTTP Protokolünde de %100 Çalışan Garanti Kopyala-Yapıştır Fonksiyonu (Eski Usul TextArea Yöntemi)
+    function garantiKopyala(metin, element) {
+        // Geçici bir textarea oluşturup sayfaya ekliyoruz
+        var geciciKutu = document.createElement("textarea");
+        geciciKutu.value = metin;
+        // Ekranı kaydırmasın diye sabitleyelim
+        geciciKutu.style.position = "fixed";
+        document.body.appendChild(geciciKutu);
+
+        // İçindeki metni seçtirip kopyalama komutu veriyoruz
+        geciciKutu.select();
+        geciciKutu.setSelectionRange(0, 99999); // Mobil cihazlar için garanti
+
+        document.execCommand("copy"); // Güvenlik duvarını aşan eski efsane komut
+        document.body.removeChild(geciciKutu); // Kutuyu yok ediyoruz
+
+        // Buton animasyonu
+        var eskiYazi = element.innerText;
+        element.innerText = "✅ Alındı";
+        element.classList.remove("btn-outline-secondary");
+        element.classList.add("btn-success");
+        setTimeout(function() {
+            element.innerText = eskiYazi;
+            element.classList.remove("btn-success");
+            element.classList.add("btn-outline-secondary");
+        }, 1500);
+    }
+    </script>
+</body>
+</html>
