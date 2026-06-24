@@ -155,12 +155,15 @@
     }
 
     // SON DAKİKA ADRES EKLEME FONKSİYONU
+   // SON DAKİKA ADRES EKLEME FONKSİYONU (DÜZELTİLDİ)
     function sonDakikaAdresEkle() {
         var input = document.getElementById('yeni-adres-input');
-        var adres = input.value.strip ? input.value.strip() : input.value.trim();
-        if(!adres) return;
-
+        if (!input) return;
         
+        var adres = input.value.trim(); // JavaScript standardı olan trim kullandık, strip'i çöpe attık
+        if (!adres) return;
+
+        // Adresin koordinatını tarayıcıda bilmediğimiz için Yandex linkinde isim olarak kullanacağız
         var yeniElemanDuz = `
             <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3" data-lat="" data-lon="" data-adres="${adres}">
                 <span class="me-2 adres-metni">${adres}</span>
@@ -171,14 +174,15 @@
             </div>`;
             
         document.getElementById('duz-liste').insertAdjacentHTML('beforeend', yeniElemanDuz);
-        
+        // Ters listenin en başına ekle (Çünkü düz listenin sonu, ters listenin başıdır)
         document.getElementById('ters-liste').insertAdjacentHTML('afterbegin', yeniElemanDuz);
         
-        
+        // Özet sayılarını arttır
         document.getElementById('ozet-bulunan').innerText = parseInt(document.getElementById('ozet-bulunan').innerText) + 1;
         document.getElementById('ozet-girilen').innerText = parseInt(document.getElementById('ozet-girilen').innerText) + 1;
         
         input.value = ''; // Kutuyu temizle
+    }
     }
 
     // DİNAMİK HARİTA LİNKİ OLUŞTURUCU VE AÇICI
