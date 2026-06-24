@@ -213,11 +213,9 @@
         window.open(yandexUrl, '_blank');
     }
 
-    // BULUNAMAYAN ADRESİ ANA SAYFAYA DÜZELTMEYE GÖNDERME 
-    function adresiDuzeltmeyeGonder(hataliAdres) {
-        
+   function adresiDuzeltmeyeGonder(hataliAdres) {
         sessionStorage.setItem('duzeltilecek_adres', hataliAdres);
-        document.getElementById('yeni-grid-linki')?.click();
+        document.getElementById('yeni-giris-linki')?.click();
         window.location.href = "/";
     }
 
