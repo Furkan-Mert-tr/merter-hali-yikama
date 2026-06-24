@@ -45,7 +45,10 @@
                 </div>
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-body">
-                        <h5 class="card-title fw-bold text-success mb-3">🏁 Gidiş Sıralaması (A -> Z):</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title fw-bold text-success m-0">🏁 Gidiş Sıralaması (A -> Z):</h5>
+                            <button type="button" class="btn btn-sm btn-success fw-bold" onclick="eklemeKutusunuAc()">➕ Adres İlave Et</button>
+                        </div>
                         <div id="duz-liste" class="list-group list-group-numbered">
                             {% for nokta in rota %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3" data-lat="{{ nokta.lat }}" data-lon="{{ nokta.lon }}" data-adres="{{ nokta.adres }}">
@@ -74,7 +77,7 @@
                     <div class="card-body">
                         <h5 class="card-title fw-bold text-danger mb-3">🏁 Gidiş Sıralaması (Z -> A):</h5>
                         <div id="ters-liste" class="list-group list-group-numbered">
-                            {% for nokta in rota_terse_mi_cevrildi_hafiz | default(rota_ters) %}
+                            {% for nokta in rota_ters %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3" data-lat="{{ nokta.lat }}" data-lon="{{ nokta.lon }}" data-adres="{{ nokta.adres }}">
                                     <span class="me-2 adres-metni">{{ nokta.adres }}</span>
                                     <div class="btn-group">
@@ -88,16 +91,6 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 mb-4 bg-white">
-                <div class="card-body">
-                    <h6 class="fw-bold text-secondary mb-2">➕ Listeye Son Dakika Adres Ekle:</h6>
-                    <div class="input-group">
-                        <input type="text" id="yeni-adres-input" class="form-control" placeholder="Örn: Akarbaşı mah. lale sokak">
-                        <button type="button" class="btn btn-primary fw-bold" onclick="sonDakikaAdresEkle()">Ekle</button>
-                    </div>
-                </div>
-            </div>
-
         {% endif %}
 
         {% if toplam_bulunamayan > 0 %}
@@ -107,8 +100,8 @@
                     <div class="list-group list-group-flush">
                         {% for adres in bulunamayanlar %}
                             <div class="list-group-item d-flex justify-content-between align-items-center text-danger small border-0 py-2 px-0 fw-bold">
-                                <span class="hatali-adres-metni">❌ {{ adres }}</span>
-                                <button type="button" class="btn btn-danger btn-sm py-1" onclick="adresiDuzeltmeyeGonder('{{ adres }}')">✍️ Düzelterek Yeniden Ara</button>
+                                <span class="hatali-adres-metni">{{ adres }}</span>
+                                <button type="button" class="btn btn-danger btn-sm py-1" onclick="duzeltmeKutusunuAc('{{ adres }}')">✍️ Düzelt ve Yeniden Hesapla</button>
                             </div>
                         {% endfor %}
                     </div>
@@ -117,12 +110,42 @@
         {% endif %}
 
         <div class="text-center my-3">
-            <a href="/" id="yeni-giris-linki" class="btn btn-link text-decoration-none fw-bold">⬅️ Ana Sayfaya Dön</a>
+            <a href="/" class="btn btn-link text-decoration-none fw-bold">⬅️ Tüm Listeyi Sıfırla ve Başa Dön</a>
         </div>
 
     </div>
 
+    <div class="modal fade" id="akilliModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 450px; margin: 0 auto; padding: 10px;">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold" id="modalBaslik">📍 Adres Düzenleme</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="kutuyuKapat()"></button>
+                </div>
+                <div class="modal-content-body p-3">
+                    <div class="mb-3">
+                        <label id="modalAciklama" class="form-label text-muted small fw-bold">Adresi aşağıda düzelt baba:</label>
+                        <input type="text" id="modalInput" class="form-control form-control-lg fw-semibold" style="border-radius: 8px;">
+                    </div>
+                    <button type="button" class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="akilliSecimiUçurVeYenidenHesapla()">
+                        🔄 Algoritmayı Baştan Çalıştır
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="gizliPostFormu" action="/rota-hesapla" method="POST" style="display:none;">
+        <textarea name="adresler" id="gizliTextarea"></textarea>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
+    var bsModal = new bootstrap.Modal(document.getElementById('akilliModal'));
+    var mevcutSecimModu = ""; // "ekle" mi "duzelt" mi olduğunu tutacak
+    var eskiHataliMetin = "";
+
     function rotayiTersCevir() {
         var duzBolum = document.getElementById("duz-rota-bolumu");
         var tersBolum = document.getElementById("ters-rota-bolumu");
@@ -147,29 +170,74 @@
         if(mevcutBulunan > 0) document.getElementById('ozet-bulunan').innerText = mevcutBulunan - 1;
     }
 
-    function sonDakikaAdresEkle() {
-        var input = document.getElementById('yeni-adres-input');
-        if (!input) return;
-        var adres = input.value.trim();
-        if (!adres) return;
-
-        var yeniEleman = `
-            <div class="list-group-item d-flex justify-content-between align-items-center fw-semibold py-3" data-lat="" data-lon="" data-adres="${adres}">
-                <span class="me-2 adres-metni">${adres}</span>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="garantiKopyala('Eskişehir, ${adres}', this)">📋</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="adresiSil(this)">❌</button>
-                </div>
-            </div>`;
-            
-        document.getElementById('duz-liste').insertAdjacentHTML('beforeend', yeniEleman);
-        document.getElementById('ters-liste').insertAdjacentHTML('afterbegin', yeniEleman);
-        document.getElementById('ozet-bulunan').innerText = parseInt(document.getElementById('ozet-bulunan').innerText) + 1;
-        document.getElementById('ozet-girilen').innerText = parseInt(document.getElementById('ozet-girilen').innerText) + 1;
-        input.value = '';
+    // POPUP AÇMA: SİLME/DÜZELTME MODU
+    function duzeltmeKutusunuAc(hataliAdres) {
+        mevcutSecimModu = "duzelt";
+        eskiHataliMetin = hataliAdres;
+        document.getElementById('modalBaslik').innerText = "✍️ Adresi Düzelt";
+        document.getElementById('modalAciklama').innerText = "Haritanın bulamadığı adresi aşağıda netleştir baba:";
+        document.getElementById('modalInput').value = hataliAdres;
+        bsModal.show();
     }
 
-    // YANDEX VE GOOGLE DİNAMİK ROTA AÇICI (GÜNCELLENDİ)
+    // POPUP AÇMA: YENİ ADRES EKLEME MODU
+    function eklemeKutusunuAc() {
+        mevcutSecimModu = "ekle";
+        document.getElementById('modalBaslik').innerText = "➕ Yeni Adres İlave Et";
+        document.getElementById('modalAciklama').innerText = "Araya kaynak olacak yeni adresi yaz baba (Mesafe otomatik hesaplanacak):";
+        document.getElementById('modalInput').value = "";
+        bsModal.show();
+    }
+
+    function kutuyuKapat() {
+        bsModal.hide();
+    }
+
+    // AKILLI VERİ BİRLEŞTİRME VE PYTHON'A ŞUTLAMA SİHRİ
+    function akilliSecimiUçurVeYenidenHesapla() {
+        var girdidekiMetin = document.getElementById('modalInput').value.trim();
+        if(!girdidekiMetin && mevcutSecimModu === "ekle") {
+            alert("Boş adres ekleyemezsin baba!");
+            return;
+        }
+
+        var nihaiAdresListesi = [];
+
+        // 1. Ekranda şu an duran canavar gibi dizilmiş başarılı adresleri topla
+        document.querySelectorAll('#duz-liste .adres-metni').forEach(function(span) {
+            nihaiAdresListesi.push(span.innerText);
+        });
+
+        // 2. Eğer mod DÜZELTME ise, o hatalı eski adresi listeden ayıkla, yerine yenisini koy
+        if (mevcutSecimModu === "duzelt") {
+            if (girdidekiMetin) {
+                nihaiAdresListesi.push(girdidekiMetin); // Yenisini listeye dahil et
+            }
+            // Diğer haritada bulunamayan ama babanın ellemek istemediği adresler varsa onları da koruyalım
+            document.querySelectorAll('.hatali-adres-metni').forEach(function(span) {
+                var temizHatali = span.innerText;
+                if (temizHatali !== eskiHataliMetin && temizHatali !== "") {
+                    nihaiAdresListesi.push(temizHatali);
+                }
+            });
+        } 
+        // 3. Eğer mod YENİ ADRES EKLEME ise, ekrandakilerin üzerine bu yeni adresi ekle
+        else if (mevcutSecimModu === "ekle") {
+            nihaiAdresListesi.push(girdidekiMetin);
+            // Mevcut diğer bulunamayanlar varsa onları da listeye ekle ki kaybolmasınlar
+            document.querySelectorAll('.hatali-adres-metni').forEach(function(span) {
+                if(span.innerText !== "") nihaiAdresListesi.push(span.innerText);
+            });
+        }
+
+        // 4. Toplanan tüm adresleri alt alta birleştir, gizli forma göm ve Python'a yolla!
+        document.getElementById('gizliTextarea').value = nihaiAdresListesi.join("\n");
+        bsModal.hide();
+        
+        // Formu gönderiyoruz; Python mesafeleri baştan hesaplayıp sayfayı yenileyecek!
+        document.getElementById('gizliPostFormu').submit();
+    }
+
     function haritayiAc(mod, haritaTuru) {
         var listeId = mod === 'duz' ? 'duz-liste' : 'ters-liste';
         var satirlar = document.getElementById(listeId).querySelectorAll('.list-group-item');
@@ -208,21 +276,6 @@
             });
             window.open("https://www.google.com/maps/dir/" + googleParcalari.join("/"), '_blank');
         }
-    }
-
-    // DÜZELTME YAPARKEN MEVCUT TÜM ADRESLERİ HAFIZAYA ALAN SİHİRLİ FONKSİYON
-    function adresiDuzeltmeyeGonder(hataliAdres) {
-        var basariliAdresler = [];
-        // Şu an ekranda duran başarılı adreslerin hepsini metin olarak topluyoruz
-        document.querySelectorAll('#duz-liste .adres-metni').forEach(function(span) {
-            basariliAdresler.push(span.innerText);
-        });
-
-        // Paketi hazırlayıp tarayıcı hafızasına (localStorage) kilitliyoruz
-        localStorage.setItem('eski_basarili_adresler', JSON.stringify(basariliAdresler));
-        localStorage.setItem('duzeltilecek_hatali_adres', hataliAdres);
-
-        window.location.href = "/";
     }
 
     function garantiKopyala(metin, element) {
