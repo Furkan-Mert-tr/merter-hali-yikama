@@ -34,15 +34,31 @@
         </div>
     </div>
 <script>
-        // Sayfa açıldığında düzeltilecek bir sakat adres var mı diye bakıyoruz
         window.onload = function() {
-            var hataliAdres = sessionStorage.getItem('duzeltilecek_adres');
-            if (hataliAdres) {
-                var textarea = document.querySelector('textarea[name="adresler"]');
-                if (textarea) {
+            // Hafızada kurtarılmayı bekleyen adres paketi var mı diye bakıyoruz
+            var eskiAdreslerJSON = localStorage.getItem('eski_basarili_adresler');
+            var hataliAdres = localStorage.getItem('duzeltilecek_hatali_adres');
+            var textarea = document.querySelector('textarea[name="adresler"]');
+
+            if (textarea) {
+                if (eskiAdreslerJSON) {
+                    var adresDizisi = JSON.parse(eskiAdreslerJSON);
+                    
+                    // Eğer düzeltilecek hatalı bir adres varsa onu da listenin en sonuna ekle
+                    if (hataliAdres) {
+                        adresDizisi.push(hataliAdres);
+                    }
+                    
+                    // Tüm adresleri aralarına satır atlatarak kutunun içine geri diziyoruz!
+                    textarea.value = adresDizisi.join("\n");
+                    
+                    // Hafızayı temizle ki sonraki girişlerde ekran temiz gelsin
+                    localStorage.removeItem('eski_basarili_adresler');
+                    localStorage.removeItem('duzeltilecek_hatali_adres');
+                } else if (hataliAdres) {
+                    // Sadece hatalı adres varsa tek başına yaz (Yedek koruma)
                     textarea.value = hataliAdres;
-                    // Hafızayı temizle ki her sayfa yenilendiğinde gelmesin
-                    sessionStorage.removeItem('duzeltilecek_adres');
+                    localStorage.removeItem('duzeltilecek_hatali_adres');
                 }
             }
         }
